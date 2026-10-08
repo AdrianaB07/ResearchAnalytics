@@ -1,0 +1,269 @@
+﻿@model List<ResearchAnalytics.Models.SearchResult>
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Combined Report";
+
+    string NormalizeSource(string source)
+    {
+        if (!string.IsNullOrWhiteSpace(source) && source.StartsWith("OpenAlex"))
+            return "OpenAlex";
+
+        if (!string.IsNullOrWhiteSpace(source) && source.StartsWith("Semantic Scholar"))
+            return "Semantic Scholar";
+
+        return "Unknown";
+    }
+
+    var paperRows = Model
+        .SelectMany(author => (author.Papers ?? new List<ResearchAnalytics.Models.ResearchPaper>())
+            .Select(paper => new
+            {
+                Source = NormalizeSource(author.Source),
+                Author = author.AuthorName,
+                Paper = paper
+            }))
+        .Where(x => !string.IsNullOrWhiteSpace(x.Paper.Title))
+        .ToList();
+
+    var sources = Model
+        .Select(a => NormalizeSource(a.Source))
+        .Distinct()
+        .OrderBy(s => s)
+        .ToList();
+
+    string NormalizeTitle(string title)
+    {
+        return new string(title
+            .ToLower()
+            .Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c))
+            .ToArray())
+            .Trim();
+    }
+
+    var uniquePapers = paperRows
+        .GroupBy(x => NormalizeTitle(x.Paper.Title))
+        .Select(g => g
+            .OrderByDescending(x => x.Paper.CitationCount)
+            .First())
+        .ToList();
+
+    var duplicateCount = paperRows.Count - uniquePapers.Count;
+
+    var totalUniqueCitations = uniquePapers.Sum(x => x.Paper.CitationCount);
+
+    var totalCitations = paperRows.Sum(x => x.Paper.CitationCount);
+    var avgCitations = paperRows.Any()
+        ? paperRows.Average(x => x.Paper.CitationCount)
+        : 0;
+}
+
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="page-title">Author Report</h1>
+            <p class="page-subtitle">
+                Compare selected author profiles and review publications grouped by data source.
+            </p>
+        </div>
+
+        <div class="d-flex gap-3 mb-4">
+
+            <form asp-action="CustomizeReport" method="post">
+                @foreach (var author in Model)
+                {
+                    <input type="hidden"
+                           name="selectedAuthorIds"
+                           value="@author.SearchResultId" />
+                }
+
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-sliders"></i>
+                    Personalize Report
+                </button>
+            </form>
+
+            <form asp-action="ExportCombinedReportToExcel" method="post">
+                @foreach (var author in Model)
+                {
+                    <input type="hidden"
+                           name="selectedAuthorIds"
+                           value="@author.SearchResultId" />
+                }
+
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel"></i>
+                    Export Full Report
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="ra-card">
+                <span class="text-muted">Selected profiles</span>
+                <div class="ra-metric">@Model.Count</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="ra-card">
+                <span class="text-muted">Source records</span>
+                <div class="ra-metric">@paperRows.Count</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="ra-card">
+                <span class="text-muted">Estimated unique publications</span>
+                <div class="ra-metric">@uniquePapers.Count</div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="ra-card">
+                <span class="text-muted">Unique citation total</span>
+                <div class="ra-metric">@totalUniqueCitations</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info mb-4">
+        Publications may appear in multiple sources. Unique publication estimates are calculated by grouping records with the same normalized title.
+    </div>
+
+    <div class="ra-card mb-4">
+        <h4 class="mb-3">Source summary</h4>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Selected Profiles</th>
+                        <th>Publications</th>
+                        <th>Total Citations</th>
+                        <th>Average Citations / Publication</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var source in sources)
+                    {
+                        var sourceAuthors = Model.Where(a => NormalizeSource(a.Source) == source).ToList();
+                        var sourcePapers = paperRows.Where(p => p.Source == source).ToList();
+
+                        <tr>
+                            <td class="fw-semibold">@source</td>
+                            <td>@sourceAuthors.Count</td>
+                            <td>@sourcePapers.Count</td>
+                            <td>@sourcePapers.Sum(p => p.Paper.CitationCount)</td>
+                            <td>
+                                @(sourcePapers.Any()
+                                                            ? sourcePapers.Average(p => p.Paper.CitationCount).ToString("0.00")
+                                                            : "0.00")
+                        </td>
+                    </tr>
+                                        }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="ra-card mb-4">
+        <h4 class="mb-3">Selected author profiles</h4>
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Author</th>
+                        <th>Paper Count</th>
+                        <th>Citations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var author in Model.OrderBy(a => NormalizeSource(a.Source)).ThenByDescending(a => a.Citations))
+                    {
+                        <tr>
+                            <td>@NormalizeSource(author.Source)</td>
+                            <td class="fw-semibold">@author.AuthorName</td>
+                            <td>@author.PaperCount</td>
+                            <td>@author.Citations</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @foreach (var source in sources)
+    {
+        var sourcePapers = paperRows
+        .Where(p => p.Source == source)
+        .OrderByDescending(p => p.Paper.CitationCount)
+        .ToList();
+
+        <div class="ra-card mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0">@source Publications</h4>
+                <span class="text-muted small">@sourcePapers.Count publications</span>
+            </div>
+
+            @if (sourcePapers.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Author</th>
+                                <th>Title</th>
+                                <th style="width: 100px;">Year</th>
+                                <th style="width: 120px;">Citations</th>
+                                <th style="width: 100px;">Link</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in sourcePapers)
+                            {
+                                <tr>
+                                    <td>@item.Author</td>
+                                    <td class="fw-semibold">@item.Paper.Title</td>
+                                    <td>@(item.Paper.Year?.ToString() ?? "N/A")</td>
+                                    <td>@item.Paper.CitationCount</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(item.Paper.Url))
+                                        {
+                                            <a href="@item.Paper.Url"
+                                               target="_blank"
+                                               class="btn btn-sm btn-outline-primary">
+                                                Open
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info mb-0">
+                    No publications loaded for this source.
+                </div>
+            }
+        </div>
+    }
+
+    <a asp-action="Index" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+</div>

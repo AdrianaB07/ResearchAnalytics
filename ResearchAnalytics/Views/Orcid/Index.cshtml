@@ -1,0 +1,48 @@
+﻿@{
+    ViewData["Title"] = "ORCID Search";
+}
+
+<div class="page-shell">
+
+    <div class="mb-4">
+        <h1 class="page-title">ORCID Search</h1>
+
+        <p class="page-subtitle">
+            Search researchers by ORCID iD and retrieve verified public publication data.
+        </p>
+    </div>
+
+    <div class="ra-card">
+
+        <form asp-controller="Orcid"
+              asp-action="Profile"
+              method="get">
+
+            <label class="form-label fw-semibold">
+                ORCID iD
+            </label>
+
+            <div class="d-flex gap-2">
+
+                <input type="text"
+                       name="orcidId"
+                       class="form-control"
+                       placeholder="0000-0002-1825-0097" />
+
+                <button type="submit"
+                        class="btn btn-primary">
+                    Search
+                </button>
+
+            </div>
+
+            <div class="form-text mt-2">
+                Example format:
+                0000-0002-1825-0097
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
