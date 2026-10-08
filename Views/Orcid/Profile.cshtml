@@ -1,0 +1,60 @@
+﻿@model ResearchAnalytics.Models.OrcidProfile
+
+@{
+    ViewData["Title"] = "ORCID Profile";
+}
+
+<div class="page-shell">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="page-title">ORCID Profile</h1>
+            <p class="page-subtitle">
+                Public researcher identity information retrieved from ORCID.
+            </p>
+        </div>
+
+        <a asp-controller="Orcid" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+    </div>
+
+    <div class="ra-card mb-4">
+        <span class="text-muted">Researcher</span>
+        <h3>@Model.FullName</h3>
+
+        <p class="mb-1">
+            <strong>ORCID iD:</strong>
+            <a href="@Model.ProfileUrl" target="_blank">@Model.OrcidId</a>
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.CreditName))
+        {
+            <p class="mb-1">
+                <strong>Credit name:</strong> @Model.CreditName
+            </p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.Biography))
+        {
+            <p class="mt-3">@Model.Biography</p>
+        }
+    </div>
+
+    <div class="d-flex gap-2">
+        <a asp-controller="Orcid"
+           asp-action="Works"
+           asp-route-orcidId="@Model.OrcidId"
+           class="btn btn-primary">
+            View ORCID Works
+        </a>
+
+        <form asp-controller="Search" asp-action="New" method="post">
+            <input type="hidden" name="queryText" value="@Model.FullName" />
+            <input type="hidden" name="orcidId" value="@Model.OrcidId" />
+
+            <button type="submit" class="btn btn-outline-primary">
+                Search this researcher in ResearchAnalytics
+            </button>
+        </form>
+    </div>
+</div>

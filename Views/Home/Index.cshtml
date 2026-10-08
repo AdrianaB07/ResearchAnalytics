@@ -1,0 +1,75 @@
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="home-hero-wrapper">
+    <div class="text-center home-hero">
+
+        <img src="~/images/logo.png"
+             alt="ResearchAnalytics Logo"
+             class="home-logo" />
+
+        <h1 class="display-4 fw-bold">ResearchAnalytics</h1>
+
+        <p class="lead">
+            Web application for analyzing scientific research activity.
+        </p>
+
+        <p class="text-muted">
+            Search researchers, analyze publications and citations, and generate academic reports.
+        </p>
+
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            <a asp-controller="Search" asp-action="Index" class="btn btn-primary btn-lg">
+                Find a Researcher
+            </a>
+        }
+        else
+        {
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary btn-lg">
+                Login to Get Started
+            </a>
+        }
+    </div>
+</div>
+
+<div class="home-features-section">
+    <div class="row text-center mt-3">
+        <div class="col-md-4 mb-3">
+            <div class="ra-card h-100 home-feature-card">
+                <h4>Search Researchers</h4>
+                <p>
+                    Find academic author profiles using external research data sources.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="ra-card h-100 home-feature-card">
+                <h4>Analyze Impact</h4>
+                <p>
+                    View publication counts, citation counts, yearly statistics and top papers.
+                </p>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="ra-card h-100 home-feature-card">
+                <h4>Generate Reports</h4>
+                <p>
+                    Export structured Excel reports for academic and administrative purposes.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="ra-card mt-4">
+    <h3>About the application</h3>
+    <p class="mb-0">
+        ResearchAnalytics is designed to simplify the process of collecting and analyzing
+        research activity data. The system integrates with Semantic Scholar API in order
+        to retrieve information about authors, publications and citation impact.
+    </p>
+</div>
